@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "platform": "windows-steam",
+  "mode": 4,
+  "capture_interval_ms": 1200,
+  "save_raw_screenshots": false,
+  "cloud_enabled": false,
+  "notes": "Configuration contract for future versions. Current UI settings and ROI are managed in app; this example is not loaded."
+}
+
