@@ -1,0 +1,49 @@
+{
+  "generator": "RiichiEnv",
+  "generator_version": "0.4.10",
+  "rule": "GameRule.default_mjsoul()",
+  "policy": "greedy-shanten-v2: win, 35% per-opportunity riichi, min-shanten discard, pass calls",
+  "data_kind": "synthetic_demo",
+  "human_game_records": false,
+  "game_length": "east",
+  "seed_start": 20260925,
+  "seed_note": "RiichiEnv 0.4.10 does not reproduce later East-round walls from reset(seed); exact regeneration uses the archived MJAI event log.",
+  "games_per_mode": 150,
+  "game_counts": {
+    "3": {
+      "train": 97,
+      "validation": 24,
+      "test": 29
+    },
+    "4": {
+      "train": 105,
+      "validation": 23,
+      "test": 22
+    }
+  },
+  "sample_counts": {
+    "3": {
+      "train": 13354,
+      "validation": 3208,
+      "test": 3680
+    },
+    "4": {
+      "train": 24043,
+      "validation": 6012,
+      "test": 5569
+    }
+  },
+  "tenpai_positive_counts": {
+    "3": 3351,
+    "4": 3667
+  },
+  "riichi_sample_counts": {
+    "3": 2233,
+    "4": 2249
+  },
+  "sha256": "4eaf1eccd0b0833351f3dc1143a09f67a91760db867ace379090e6e510b3503f",
+  "event_log_sha256": "a6ab3e328ceb04cfc2ca9ce2d12993c338e011c8c5cebb63421c95c4393d04ff",
+  "real_world_accuracy_claim": false,
+  "event_log_file": "riichienv-greedy-v2.events.jsonl.gz",
+  "training_file": "rebuild locally from the synthetic event archive"
+}

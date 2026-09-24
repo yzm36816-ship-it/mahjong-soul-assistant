@@ -123,12 +123,15 @@ def load_games(path: Path) -> list[TrainingExample]:
     return examples
 
 
-def source_summary(path: Path) -> dict:
+def source_summary(path: Path, mode: int | None = None) -> dict:
     counts: dict[str, int] = {}
     with path.open(encoding="utf-8") as stream:
         for line in stream:
             if line.strip():
-                kind = json.loads(line)["source"]["provenance"]
+                game = json.loads(line)
+                if mode is not None and game["mode"] != mode:
+                    continue
+                kind = game["source"]["provenance"]
                 counts[kind] = counts.get(kind, 0) + 1
     return counts
 

@@ -100,7 +100,8 @@ def _baseline_tenpai(train, test):
     return np.array([rates[bucket(example)] for example in test])
 
 
-def train_mode(examples, mode: int, source_counts: dict, output_root: Path, epochs: int = 35) -> dict:
+def train_mode(examples, mode: int, source_counts: dict, output_root: Path, epochs: int = 35,
+               dataset_info: dict | None = None) -> dict:
     torch = _torch()
     torch.manual_seed(17)
     np.random.seed(17)
@@ -110,7 +111,7 @@ def train_mode(examples, mode: int, source_counts: dict, output_root: Path, epoc
     report = {"mode": mode, "sources": source_counts,
               "samples": {name: len(rows) for name, rows in splits.items()},
               "games": {name: len({row.game_id for row in rows}) for name, rows in splits.items()},
-              "promoted": False, "reason": ""}
+              "dataset": dataset_info or {}, "promoted": False, "reason": ""}
     if any(not rows for rows in splits.values()):
         report["reason"] = "需要按整场牌局划分的训练、验证、测试样本"
         return report
@@ -180,6 +181,11 @@ def train_mode(examples, mode: int, source_counts: dict, output_root: Path, epoc
     report["temperatures"] = temperatures
     report["tenpai"] = {"model": _binary_metrics(p_tenpai, y_test),
                         "rule_bucket_baseline": _binary_metrics(baseline_tenpai, y_test)}
+    non_riichi = np.array([not row.public.riichi_confirmed for row in splits["test"]])
+    report["tenpai"]["non_riichi_examples"] = int(non_riichi.sum())
+    report["tenpai"]["non_riichi_model"] = _binary_metrics(p_tenpai[non_riichi], y_test[non_riichi])
+    report["tenpai"]["non_riichi_rule_baseline"] = _binary_metrics(
+        baseline_tenpai[non_riichi], y_test[non_riichi])
     report["waits"] = {"examples": int(wm_test.sum()),
                        "model_recall_at_5": _recall_at_five(p_wait[wm_test], w_test[wm_test]),
                        "prior_recall_at_5": _recall_at_five(np.broadcast_to(wait_prior, w_test[wm_test].shape), w_test[wm_test])}
@@ -190,6 +196,8 @@ def train_mode(examples, mode: int, source_counts: dict, output_root: Path, epoc
     checks = (not source_counts.get("synthetic_demo") and bool(real_sources)
               and report["games"]["test"] >= 20
               and report["tenpai"]["model"]["brier"] < report["tenpai"]["rule_bucket_baseline"]["brier"]
+              and report["tenpai"]["non_riichi_examples"] > 0
+              and report["tenpai"]["non_riichi_model"]["brier"] < report["tenpai"]["non_riichi_rule_baseline"]["brier"]
               and report["waits"]["model_recall_at_5"] is not None
               and report["waits"]["prior_recall_at_5"] is not None
               and report["waits"]["model_recall_at_5"] > report["waits"]["prior_recall_at_5"]
@@ -197,7 +205,9 @@ def train_mode(examples, mode: int, source_counts: dict, output_root: Path, epoc
               and report["ron"]["prior_brier"] is not None
               and report["ron"]["model_brier"] < report["ron"]["prior_brier"])
     report["promoted"] = bool(checks)
-    report["reason"] = "达到独立测试门槛" if checks else "仅供实验：真实独立测试数量或效果未达展示门槛"
+    report["reason"] = ("达到独立测试门槛" if checks else
+                        "模拟对局实验，不能用于实战概率" if source_counts.get("synthetic_demo") else
+                        "真实独立测试数量或效果未达展示门槛")
     output = output_root / f"{mode}p"
     output.mkdir(parents=True, exist_ok=True)
     torch.save({"state_dict": best_state, "feature_size": FEATURE_SIZE}, output / "model.pt")

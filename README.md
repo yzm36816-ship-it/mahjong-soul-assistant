@@ -36,6 +36,25 @@ cd ..
 
 报告位于 `data/models/3p/report.json` 和 `data/models/4p/report.json`，并显示在 Web 看板。真实牌谱导入格式、来源校验和评估门槛见 [`docs/model-data.md`](docs/model-data.md)。
 
+要复现**RiichiEnv 模拟对局**实验，先安装可选依赖，再生成三麻／四麻各 150 场东风战并训练：
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[simulation,ml]"
+.\.venv\Scripts\python.exe tools/generate_simulations.py --games-per-mode 150 --seed 20260925 --length east
+.\.venv\Scripts\python.exe tools/train_models.py data/simulations/riichienv-greedy-v2.jsonl --epochs 18
+```
+
+完整 MJAI 模拟事件日志的压缩包和去路径清单公开在 `examples/simulated/`；本机原始输出、训练数据和权重位于被忽略的 `data/`。RiichiEnv 0.4.10 的东风战后续牌墙并不能仅凭 `reset(seed)` 精确重现，所以事件日志才是实验的可复现输入。克隆仓库后可直接重建**同一份模拟训练数据**：
+
+```powershell
+.\.venv\Scripts\python.exe tools/rebuild_simulations.py examples/simulated/riichienv-greedy-v2.events.jsonl.gz --output data/simulations/riichienv-greedy-v2.jsonl
+.\.venv\Scripts\python.exe tools/train_models.py data/simulations/riichienv-greedy-v2.jsonl --epochs 18
+```
+
+训练报告单独列出未立直听牌指标；即使模拟测试表现好，模型也不会进入实时界面。此实验检验的是模拟分布下的训练流程，**不是雀魂真人对局准确率**。
+
+本次实验的样本数、基线对比和失败场景见 [`docs/simulation-experiment.md`](docs/simulation-experiment.md)。
+
 要从**自己录制的完整复盘**制作人工标注底稿，先在桌面端导入视频并连续播放，再从看板的 `/api/sessions` 查到对应会话 ID，运行 `./.venv/Scripts/python.exe tools/export_annotation_template.py 会话ID`。生成的 `data/annotations/*.jsonl` 在人工核对隐藏手牌、副露和公开牌后才能用于训练；未复核行会被程序拒绝。
 
 ## 系统边界
