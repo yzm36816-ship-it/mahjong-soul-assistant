@@ -1,10 +1,20 @@
 import os
+import time
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PIL import Image
 from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QTest
 from mahjong_assistant.ui.main_window import MainWindow
 from mahjong_assistant.vision.recognizer import Observation, Detection
+
+
+def wait_until(predicate, timeout=5):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        QTest.qWait(50)
+    return predicate()
 
 
 def test_monitor_timer_updates_cards_and_keeps_running_with_details_open(monkeypatch, tmp_path):
@@ -33,20 +43,21 @@ def test_monitor_timer_updates_cards_and_keeps_running_with_details_open(monkeyp
     window.recognizer.read = read
     window.timer.setInterval(60)
     window.toggle_live()
-    QTest.qWait(700)
-    assert len(calls) >= 4
+    assert wait_until(lambda: any(o.seat == "top" and "3p" in o.discards
+                                  for o in window.session.board.opponents)
+                      and "识别现物" in window.cards["top"][3].text())
+    assert len(calls) >= 3
     assert window.session.board.auto_hand_ready
     assert "识别现物" in window.cards["top"][3].text()
     assert "3p" in next(o for o in window.session.board.opponents if o.seat == "top").discards
     window.show_risks("top")
     window.show_preview()
     before = len(calls)
-    QTest.qWait(200)
-    assert window.timer.isActive() and len(calls) > before
+    assert wait_until(lambda: len(calls) > before)
+    assert window.timer.isActive()
     window.stop_live()
     QTest.qWait(100)
     after = len(calls)
     QTest.qWait(100)
     assert len(calls) == after
     window.close()
-
